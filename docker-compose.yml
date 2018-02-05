@@ -1,0 +1,35 @@
+version: '2'
+services:
+  base:
+    build: .
+
+  listener:
+    extends: base
+    links:
+      - psql
+    environment:
+      URN: 'pgsql:host=psql;port=5432;dbname=postgres;user=postgres'
+    command: >
+      /bin/sh -c "
+      echo 'Wait for postgres to spin up...';
+      sleep 5;
+      /www/cli.php channel:listen;
+      "
+
+  sender:
+    extends: base
+    links:
+      - psql
+    environment:
+      URN: 'pgsql:host=psql;port=5432;dbname=postgres;user=postgres'
+    command: >
+      /bin/sh -c "
+      echo 'Wait for postgres and listener to spin up...';
+      sleep 10;
+      /www/cli.php db:init --clear;
+      /www/cli.php channel:send 100 1;
+      "
+  psql:
+    image: postgres:alpine
+    ports:
+    - "5432:5432"
